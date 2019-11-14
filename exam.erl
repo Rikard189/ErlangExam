@@ -1,6 +1,6 @@
 -module(exam).
 -export([evaluate/2, rndSolution/1, mutate/2, getInstance/1, solve/2, solveConcurrent/3, runTime/3]).
--export([evalAux/3, mutateAux/3]).
+-export([evalAux/3, mutateAux/3, solveAux/4]).
 
 % Do not forget to include the full name and student ID of the team members
 %=======================================
@@ -78,7 +78,7 @@ mutateAux([X|XS], P, GenP) -> if
 	GenP > P -> [X | mutateAux(XS, P, rand:uniform())];
 	% TODO: Remove brackets in [not(X)]
 	% Solo estan por motivos de debug
-	GenP < P -> [[not(X)] | mutateAux(XS, P, rand:uniform())]
+	GenP < P -> [not(X) | mutateAux(XS, P, rand:uniform())]
 end.
 % PREGUNTAR QUE PASA SI LA PROBABILIDAD GENERADA ES LA MISMA QUE LA DADA POR EL USUARIO.
 % PREGUNTAR SI POR CADA VALOR DEL ARREGLO DE BOOLEANOS TENEMOS QUE GENERAR UNA NUEVA PROBABILIDAD.
@@ -116,7 +116,40 @@ getInstance(ks10000) -> {1000000, [{120553, 122416}, {179530, 171513}, {76916, 7
 % the actual solution found and Weight and Profit indicate the total weight 
 % and profit packed within the knapsack, respectively.
 % ============================================
-solve(Instance, Trials) -> io:format("Not yet implemented.\n").
+solve(Instance, Trials) ->
+	% Get the instance of ks45 and save it as a tuple {X, Y} where X is the backpack CAPACITY and Y the array of {Weght, Value}
+	% {X, Y} = Instance,
+	% Generate a solution (array of booleans) for the instance using the function rndSolution(size(instance))
+	Solution = rndSolution(length(element(2, Instance))),
+	% Evaluate the solution with the function evaluate(Solution, Instance)
+	Sol_eval = evaluate(Solution, Instance),
+	% {Solution, element(1, Sol_eval), element(2, Sol_eval)}.
+	solveAux(Solution, Sol_eval, Instance, Trials).
+
+solveAux(Solution, Sol_eval, Instance, Trials) -> if
+	Trials > 0 ->
+		Candidate = mutate(Solution, rand:uniform()),
+		Candidate_eval = evaluate(Candidate, Instance),
+		if 
+			element(2, Candidate_eval) > element(2, Sol_eval) ->
+				Solution2 = Candidate,
+				Sol_eval2 = Candidate_eval,
+				solveAux(Solution2, Sol_eval2, Instance, Trials-1);
+			true -> solveAux(Solution, Sol_eval, Instance, Trials-1)
+		end;
+	true -> {Solution, element(1, Sol_eval), element(2, Sol_eval)}
+end.
+	% evaluate( mutate(Solution, rand:uniform()) , Instance),
+	% if
+	% 	element(2, Solution) > element(2, evaluate( mutate(Solutionm, rand:uniform()) , Instance)) -> {Solution, element(1, evaluate( mutate(Solutionm, rand:uniform())), element(2, evaluate( mutate(Solutionm, rand:uniform()))}, solveAux(Solution, Instance, Trials-1);
+	% 	true -> 
+
+
+% for i = 0 to Trials
+% 	Mutate the solution using the function mutate(Solution, Probability)
+% 	Evaluate the solution with the function evaluate(Solution, Instance)
+% 	If evaluation1.y > evaluation2.y
+% 		{Solution, X, Y}
 
 % Concurrent solver 
 %
