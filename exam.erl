@@ -1,5 +1,6 @@
 -module(exam).
 -export([evaluate/2, rndSolution/1, mutate/2, getInstance/1, solve/2, solveConcurrent/3, runTime/3]).
+-export([evalAux/3]).
 
 % Do not forget to include the full name and student ID of the team members
 %=======================================
@@ -37,7 +38,15 @@
 % Returns {12, 20}, which means that, the cumulative weight of the items
 % in the knapsack is 12 units, and its profit is 20 units.
 % ============================================
-evaluate(Solution, Instance) -> io:format("Not yet implemented.\n").
+evaluate(Solution, Instance) -> evalAux(Solution, Instance, {0, 0}).
+evalAux([], _, Res) -> Res;
+evalAux([S|XS], {C, [{W, P}|XI]}, {X, Y}) -> if
+	S == false -> evalAux(XS, {C, XI}, {X,Y});
+	true -> if
+		X+W =< C -> evalAux(XS, {C, XI}, {X+W, Y+P});
+		true -> evalAux(XS, {C, XI}, {X, Y})
+	end
+end.
 
 % Generation of random solutions
 %
