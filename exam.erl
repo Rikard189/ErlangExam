@@ -1,28 +1,28 @@
 -module(exam).
 -export([evaluate/2, rndSolution/1, mutate/2, getInstance/1, solve/2, solveConcurrent/3, runTime/3]).
--export([evalAux/3]).
+-export([evalAux/3, mutateAux/3]).
 
 % Do not forget to include the full name and student ID of the team members
 %=======================================
 % Name: Ricardo Acosta Esquivel
 % Student ID: A01039456
-% Name: Ivan Fernando Muñiz
-% Student ID: 
+% Name: Iván Muñiz Ramírez
+% Student ID: A01039386
 %=======================================
 
 % Testing
 %
 % You can verify the correctness of your functions by using the following tests.
 % ============================================
-% knapsack:evaluate([true, false, false, false, true], {12, [{5, 10}, {4, 7}, {8, 1}, {3, 5}, {7, 10}]}).
+% exam:evaluate([true, false, false, false, true], {12, [{5, 10}, {4, 7}, {8, 1}, {3, 5}, {7, 10}]}).
 % => {12,20}
-% knapsack:evaluate([false, false, true], {7, [{1, 10}, {4, 3}, {12, 2}]}).
+% exam:evaluate([false, false, true], {7, [{1, 10}, {4, 3}, {12, 2}]}).
 % => {0,0}
-% knapsack:evaluate([true, true, true], {10, [{1, 10}, {10, 13}, {4, 2}]}).
+% exam:evaluate([true, true, true], {10, [{1, 10}, {10, 13}, {4, 2}]}).
 % => {5,12}
-% knapsack:mutate([true, true, true], 1).
+% exam:mutate([true, true, true], 1).
 % => [false,false,false]
-% knapsack:mutate([true, true, true], 0).
+% exam:mutate([true, true, true], 0).
 % => [true,true,true]
 % ============================================
 
@@ -70,7 +70,18 @@ rndSolution(N) -> if
 % Returns a new solution which is slightly different from the one given
 % as argument (the elements are changed with a probability of 0.1).
 % ============================================
-mutate(Solution, Probability) -> io:format("Not yet implemented.\n").
+mutate(Solution, Probability) -> mutateAux(Solution, Probability, rand:uniform()).
+mutateAux([], _, _) -> [];
+% mutateAux([X|XS], 0, _) -> [X|mutateAux(XS, 0, rand:uniform(1))];
+% mutateAux([X|XS], 1, _) -> [not(X)|mutateAux(XS, 1, rand:uniform(1))];
+mutateAux([X|XS], P, GenP) -> if
+	GenP > P -> [X | mutateAux(XS, P, rand:uniform())];
+	% TODO: Remove brackets in [not(X)]
+	% Solo estan por motivos de debug
+	GenP < P -> [[not(X)] | mutateAux(XS, P, rand:uniform())]
+end.
+% PREGUNTAR QUE PASA SI LA PROBABILIDAD GENERADA ES LA MISMA QUE LA DADA POR EL USUARIO.
+% PREGUNTAR SI POR CADA VALOR DEL ARREGLO DE BOOLEANOS TENEMOS QUE GENERAR UNA NUEVA PROBABILIDAD.
 
 % Test instances
 %
