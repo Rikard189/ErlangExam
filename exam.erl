@@ -1,6 +1,6 @@
 -module(exam).
 -export([evaluate/2, rndSolution/1, mutate/2, getInstance/1, solve/2, solveConcurrent/3, runTime/3]).
--export([evalAux/3, mutateAux/3, solveAux/4]).
+-export([evalAux/3, mutateAux/3, solveAux/4, processCreator/5, solveConcu/3, solutionReceiver/2]).
 
 % Do not forget to include the full name and student ID of the team members
 %=======================================
@@ -72,15 +72,10 @@ rndSolution(N) -> if
 % ============================================
 mutate(Solution, Probability) -> mutateAux(Solution, Probability, rand:uniform()).
 mutateAux([], _, _) -> [];
-% mutateAux([X|XS], 0, _) -> [X|mutateAux(XS, 0, rand:uniform(1))];
-% mutateAux([X|XS], 1, _) -> [not(X)|mutateAux(XS, 1, rand:uniform(1))];
 mutateAux([X|XS], P, GenP) -> if
 	GenP > P -> [X | mutateAux(XS, P, rand:uniform())];
-	% TODO: Remove brackets in [not(X)]
-	% Solo estan por motivos de debug
-	GenP < P -> [not(X) | mutateAux(XS, P, rand:uniform())]
+	GenP =< P -> [not(X) | mutateAux(XS, P, rand:uniform())]
 end.
-% PREGUNTAR QUE PASA SI LA PROBABILIDAD GENERADA ES LA MISMA QUE LA DADA POR EL USUARIO.
 % PREGUNTAR SI POR CADA VALOR DEL ARREGLO DE BOOLEANOS TENEMOS QUE GENERAR UNA NUEVA PROBABILIDAD.
 
 % Test instances
@@ -128,7 +123,7 @@ solve(Instance, Trials) ->
 
 solveAux(Solution, Sol_eval, Instance, Trials) -> if
 	Trials > 0 ->
-		Candidate = mutate(Solution, rand:uniform()),
+		Candidate = mutate(Solution, 0.1),
 		Candidate_eval = evaluate(Candidate, Instance),
 		if 
 			element(2, Candidate_eval) > element(2, Sol_eval) ->
@@ -139,17 +134,6 @@ solveAux(Solution, Sol_eval, Instance, Trials) -> if
 		end;
 	true -> {Solution, element(1, Sol_eval), element(2, Sol_eval)}
 end.
-	% evaluate( mutate(Solution, rand:uniform()) , Instance),
-	% if
-	% 	element(2, Solution) > element(2, evaluate( mutate(Solutionm, rand:uniform()) , Instance)) -> {Solution, element(1, evaluate( mutate(Solutionm, rand:uniform())), element(2, evaluate( mutate(Solutionm, rand:uniform()))}, solveAux(Solution, Instance, Trials-1);
-	% 	true -> 
-
-
-% for i = 0 to Trials
-% 	Mutate the solution using the function mutate(Solution, Probability)
-% 	Evaluate the solution with the function evaluate(Solution, Instance)
-% 	If evaluation1.y > evaluation2.y
-% 		{Solution, X, Y}
 
 % Concurrent solver 
 %
@@ -157,14 +141,43 @@ end.
 % different processes.
 % ============================================
 % Example:
-% 	exam:solveConcurrent(exam:getInstance(ks45), 1000000, 4).
+% 	exam:solveConcurrent(exam:getInstance(ks45), 1000, 4).
 % Tries a million of solutions for instance with identifier ks45 by splitting 
 % the work into four concurrent processes and returns a tuple of three elements
 % {Solution, Weight, Profit}, where Solution contains the actual solution found
 % and Weight and Profit indicate the total weight and profit packed within the
 % knapsack, respectively.
 % ============================================
-solveConcurrent(Instance, Trials, Processes) -> io:format("Not yet implemented.\n").
+solveConcurrent(Instance, Trials, Processes) -> 
+	processCreator(Instance, Trials, Processes, Processes, self()).	
+
+processCreator(Instance, Trials, Processes, Times, Main) -> if
+	Times > 0 ->
+		spawn(exam, solveConcu, [Instance, Trials div Processes, Main]),
+		processCreator(Instance, Trials, Processes, Times-1, Main);
+	true -> solutionReceiver({[], 0, 0}, Processes)
+	end.
+
+solveConcu(Instance, Trials, Main) ->
+	% Generate array of booleans
+	Solution = rndSolution(length(element(2, Instance))),
+	% Evaluate {X, Y} first solution
+	Sol_eval = evaluate(Solution, Instance),
+	% Compare the solution with the othe cases and return the best solution
+	FinalSolution = solveAux(Solution, Sol_eval, Instance, Trials),
+	% Pid = spawn(exam, receiver, [Main, solveAux]);
+	Main ! FinalSolution.
+
+solutionReceiver({S, W, P}, 0) -> {S, W, P};
+solutionReceiver({S, W, P}, Processes) ->
+	receive
+		{S2, W2, P2} -> 
+			if 
+				P2 > P -> solutionReceiver({S2, W2, P2}, Processes - 1);
+				true -> solutionReceiver({S, W, P}, Processes - 1)
+			end
+	end.
+
 
 % Runtime analysis
 %
@@ -177,8 +190,8 @@ solveConcurrent(Instance, Trials, Processes) -> io:format("Not yet implemented.\
 % by evaluating 1 million solutions.
 % ============================================
 runTime(I, N, sequential) -> 
-	{T, {_, _, _}} = timer:tc(knapsack, solve, [I, N]),
+	{T, {_, _, _}} = timer:tc(exam, solve, [I, N]),
 	T / 1000000;
 runTime(I, N, concurrent) -> 
-	{T, {_, _, _}} = timer:tc(knapsack, solveConcurrent, [I, N, 4]),
+	{T, {_, _, _}} = timer:tc(exam, solveConcurrent, [I, N, 4]),
 	T / 1000000.	
